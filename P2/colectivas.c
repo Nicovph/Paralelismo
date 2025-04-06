@@ -3,6 +3,7 @@
 #include <math.h>
 #include <mpi.h>
 #include <time.h>
+#include "colectivas_propias.h"
 
 int main (int argc, char* argv[]) {
     int nprocs, rank, done = 0, n, count_local = 0, count_global = 0;

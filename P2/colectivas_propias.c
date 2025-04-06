@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <mpi.h>
-#include <time.h>
+#include "colectivas_propias.h"
 
 int MPI_FlattreeColectiva(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm) {
     int nprocs, rank, error;
@@ -40,52 +36,19 @@ int MPI_FlattreeColectiva(const void *sendbuf, void *recvbuf, int count, MPI_Dat
     return MPI_SUCCESS;
 }
 
+int MPI_BinomialColectiva(void *buffer, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
+{
+    int numprocs, rank;
 
+    MPI_Comm_size(comm, &numprocs);
+    MPI_Comm_rank(comm, &rank);
 
-
-
-
-int main (int argc, char* argv[]) {
-    int nprocs, rank, done = 0, n, count_local = 0, count_global = 0;
-    double pi, x, y, z;
-    double PI25DT = 3.141592653589793238462643;
-
-    MPI_Init(&argc, &argv);
-
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);  
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    srand(time(NULL) + rank); // Semilla diferente para cada proceso
-    
-    while (!done) {
-        if (rank == 0) {
-            printf("Enter the number of points (0 quits): \n");
-            scanf("%d", &n);
-        }
-
-        // Enviar el valor de `n` a todos los procesos
-        MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        
-        if (n == 0) break;
-
-        // Cada proceso calcula su parte de los puntos con un bucle intercalado
-        count_local = 0;
-        for (int i = rank; i < n; i += nprocs) {
-            x = ((double) rand()) / ((double) RAND_MAX);
-            y = ((double) rand()) / ((double) RAND_MAX);
-            z = sqrt((x * x) + (y * y));
-            if (z <= 1.0) count_local++;
-        }
-
-        // Enviar los resultados locales al proceso 0
-        MPI_FlattreeColectiva(&count_local, &count_global, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-        // Calcular π en el proceso 0
-        if (rank == 0) {
-            pi = ((double) count_global / (double) n) * 4.0;
-            printf("pi is approx. %.16f, Error is %.16f\n", pi, fabs(pi - PI25DT));
-        }
+    for (int i = 0; pow(2, i) <= numprocs; i++)
+    {
+        if (rank < pow(2, i) && rank + pow(2, i) < numprocs)
+            MPI_Send(buffer, count, datatype, rank + (int)pow(2, i), 0, comm);
+        if (rank >= pow(2, i) && rank < pow(2, i + 1)) // Intervalo de los procesos que pueden recibir
+            MPI_Recv(buffer, count, datatype, rank - (int)pow(2, i), 0, comm, MPI_STATUS_IGNORE);
     }
-
-    MPI_Finalize();
-    return 0;
+    return MPI_SUCCESS;
 }

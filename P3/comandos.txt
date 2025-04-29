@@ -1,0 +1,5 @@
+mpicc mandel.c -o mandel
+mpirun -np 5 -oversubscribe mandel | more
+
+./mandel > mandel.txt
+python3 view.py mandel.txt

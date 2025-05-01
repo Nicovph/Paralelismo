@@ -58,10 +58,8 @@ int main(int argc, char *argv[])
     padding = nprocs - (N % nprocs); // padding if not divisible
   }
 
-  N = N + padding; // new size of the image
-
+  N = N + padding;         // new size of the image
   local_rows = N / nprocs; // rows per process
-  /* Timestamp variables */
 
   /* Allocate result matrix of Y_RESN x X_RESN */
   if (rank == 0)
@@ -88,7 +86,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  for (i = 0; i < N; i++)
+  for (i = 0; i < local_rows; i++)
     res_local[i] = vres_local + i * X_RESN; // pointer to each row
 
   MPI_Scatter(vres, local_rows * X_RESN, MPI_INT, vres_local, local_rows * X_RESN, MPI_INT, 0, MPI_COMM_WORLD);
@@ -99,6 +97,11 @@ int main(int argc, char *argv[])
   /* Calculate and draw points */
   for (i = 0; i < local_rows; i++)
   {
+    int global_i = rank * local_rows + i; //for process 2, N=17 y P=5:  2 * 4 + i = 8 + i ⇒ rows 8, 9, 10, 11
+    if (global_i >= Y_RESN)
+      continue;
+    
+
     for (j = 0; j < X_RESN; j++)
     {
       z.real = z.imag = 0.0;
@@ -129,9 +132,9 @@ int main(int argc, char *argv[])
   gettimeofday(&ti_2, NULL);
   MPI_Gather(vres_local, local_rows * X_RESN, MPI_INT, vres, local_rows * X_RESN, MPI_INT, 0, MPI_COMM_WORLD);
   gettimeofday(&tf_2, NULL);
-  fprintf(stderr, "Process %d: Communication time (seconds) = %lf\n",rank, get_seconds(ti_2, tf_2));
+  fprintf(stderr, "Process %d: Communication time (seconds) = %lf\n", rank, get_seconds(ti_2, tf_2));
   local_time = get_seconds(ti, tf) + get_seconds(ti_2, tf_2);
-  fprintf(stderr, "Process %d: Total local time (seconds) = %lf\n",rank, local_time);
+  fprintf(stderr, "Process %d: Total local time (seconds) = %lf\n", rank, local_time);
 
   MPI_Reduce(&local_time, &total_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   if (rank == 0)
@@ -148,10 +151,9 @@ int main(int argc, char *argv[])
     }
   }
 
-
   /* Free memory */
 
-  if(rank == 0)
+  if (rank == 0)
   {
     free(vres);
   }

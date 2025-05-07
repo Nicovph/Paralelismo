@@ -65,21 +65,18 @@ int main(int argc, char *argv[])
   if (rank == 0)
   {
 
-    vres = (int *)malloc(N * X_RESN * sizeof(int)); // matrix
+    vres = (int *)malloc(N * X_RESN * sizeof(int)); // total matrix mem
     if (!vres)
     {
       fprintf(stderr, "Error allocating memory\n");
       return 1;
     }
     for (i = 0; i < N; i++)
-      res[i] = vres + i * Y_RESN; // pointer to each row
+      res[i] = vres + i * X_RESN; // pointer to each row
   }
 
-  for (int i = 0; i < nprocs; i++)
-  {
-    vres_local = (int *)malloc(local_rows * X_RESN * sizeof(int)); // local matrix
-  }
-
+  vres_local = (int *)malloc(local_rows * X_RESN * sizeof(int)); // local matrix
+  
   if (!vres_local)
   {
     fprintf(stderr, "Error allocating memory\n");
@@ -106,7 +103,7 @@ int main(int argc, char *argv[])
     {
       z.real = z.imag = 0.0;
       c.real = X_MIN + j * (X_MAX - X_MIN) / X_RESN;
-      c.imag = Y_MAX - i * (Y_MAX - Y_MIN) / N;
+      c.imag = Y_MAX - global_i * (Y_MAX - Y_MIN) / Y_RESN;
       k = 0;
 
       do
@@ -142,7 +139,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Total Time (seconds) = %lf\n", total_time);
     if (DEBUG)
     {
-      for (i = 0; i < N; i++)
+      for (i = 0; i < Y_RESN; i++)
       {
         for (j = 0; j < X_RESN; j++)
           printf("%3d ", res[i][j]);
